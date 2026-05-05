@@ -33,16 +33,25 @@ else:
 
 # --- FUNKTIONEN ---
 
-def get_reddit_data(query):
-    search_query = f"{query} review OR comparison OR guide"
-    submissions = reddit.subreddit("repsneakers+fashionreps+qualityreps").search(search_query, limit=10, time_filter="year")
-    data = ""
-    for post in submissions:
-        data += f"\nPost: {post.title}\n"
-        post.comments.replace_more(limit=0)
-        comments = [c.body for c in post.comments.list()[:10]]
-        data += "\n".join(comments)
-    return data
+import requests
+
+def get_reddit_data_no_api(query):
+    # Wir hängen einfach .json an die Suche an
+    search_url = f"https://www.reddit.com/search.json?q={query}+review&limit=10"
+    
+    # WICHTIG: Ein spezieller User-Agent, sonst blockt Reddit
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) BatchIntel/1.0'}
+    
+    response = requests.get(search_url, headers=headers)
+    if response.status_code == 200:
+        data = response.json()
+        all_text = ""
+        for post in data['data']['children']:
+            all_text += f"\nPost: {post['data']['title']}\n"
+            all_text += post['data']['selftext']
+        return all_text
+    else:
+        return "Reddit blockiert gerade die Anfrage (Status 429). Versuch es später nochmal."
 
 def analyze_text(query, context):
     prompt = f"Analysiere die Batches für {query}. Ranking, Pros/Cons und Verdict als JSON."
